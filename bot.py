@@ -10,7 +10,7 @@ if not GROQ_API_KEY:
     print("ERROR: Missing GROQ_API_KEY")
     exit(1)
 
-# قائمة الـ 10 صفحات المستقلة (5 عربي و5 إنجليزي)
+# قائمة الـ 10 صفحات المستقلة
 LANDING_PAGES = [
     {"slug": "pubg-mobile-mod", "game": "ببجي موبايل", "lang": "ar", "title": "تحميل وتحديث ببجي موبايل PUBG Mobile (النسخة المطورة)"},
     {"slug": "pubg-mobile-mod-en", "game": "PUBG Mobile", "lang": "en", "title": "Download PUBG Mobile Mod & Update Guide"},
@@ -100,7 +100,6 @@ def build_html_page(page, article_text):
     return html
 
 def main():
-    # 1. إنشاء الـ 10 صفحات المستقلة في الجذر ومجلد posts
     os.makedirs("posts", exist_ok=True)
     
     for page in LANDING_PAGES:
@@ -108,11 +107,10 @@ def main():
         text = generate_article_text(page)
         full_page = build_html_page(page, text)
         
-        # حفظ الصفحة في posts/
         with open(f"posts/{page['slug']}.html", "w", encoding="utf-8") as f:
             f.write(full_page)
 
-    # إلغاء أي صفحة رئيسية فارغة وتوجيه أول صفحة تلقائياً
+    # توجيه رابط الجذر مباشرة إلى الصفحة الأولى داخل مجلد GamesMod
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(f'<meta http-equiv="refresh" content="0; url=posts/{LANDING_PAGES[0]["slug"]}.html">')
 
