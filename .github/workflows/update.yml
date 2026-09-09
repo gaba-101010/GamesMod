@@ -1,0 +1,29 @@
+name: Run Game Blog Bot
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # يعمل تلقائياً كل يوم مرة واحدة
+  workflow_dispatch: # يتيح لك تشغيله يدوياً متى ما بغيت من زر Actions
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install groq requests
+
+      - name: Run Bot Script
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          MONETAG_AD_LINK: ${{ secrets.MONETAG_AD_LINK }}
+        run: python bot.py
