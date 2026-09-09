@@ -1,87 +1,111 @@
 import os
 import requests
+import json
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 MONETAG_AD_LINK = os.environ.get("MONETAG_AD_LINK", "https://google.com")
 
 if not GROQ_API_KEY:
     print("ERROR: Missing GROQ_API_KEY")
     exit(1)
 
-# قائمة الـ 10 صفحات المستقلة
-LANDING_PAGES = [
-    {"slug": "pubg-mobile-mod", "game": "ببجي موبايل", "lang": "ar", "title": "تحميل وتحديث ببجي موبايل PUBG Mobile (النسخة المطورة)"},
-    {"slug": "pubg-mobile-mod-en", "game": "PUBG Mobile", "lang": "en", "title": "Download PUBG Mobile Mod & Update Guide"},
-    {"slug": "8-ball-pool-mod", "game": "8 Ball Pool", "lang": "ar", "title": "ترقية وتحديث 8 Ball Pool (الخط الطويل والفلوس)"},
-    {"slug": "8-ball-pool-mod-en", "game": "8 Ball Pool", "lang": "en", "title": "8 Ball Pool Long Line & Mod Setup"},
-    {"slug": "roblox-mod-menu", "game": "روبلوكس", "lang": "ar", "title": "أدوات وسكريبتات روبلوكس Roblox Mod Menu"},
-    {"slug": "roblox-mod-menu-en", "game": "Roblox", "lang": "en", "title": "Roblox Mod Menu & Safety Guide"},
-    {"slug": "clash-of-clans-mod", "game": "كلاش أوف كلانس", "lang": "ar", "title": "سيرفرات وترقيات كلاش أوف كلانس Clash of Clans"},
-    {"slug": "clash-of-clans-mod-en", "game": "Clash of Clans", "lang": "en", "title": "Clash of Clans Private Server & Mod Guide"},
-    {"slug": "free-fire-headshot", "game": "فري فاير", "lang": "ar", "title": "حزم وتحديثات فري فاير Free Fire (Headshot Mod)"},
-    {"slug": "free-fire-headshot-en", "game": "Free Fire", "lang": "en", "title": "Free Fire Headshot Sensitivity & Tools Guide"}
+# الخمس ألعاب المستهدفة (نسخة عربي ونسخة إنجليزي لكل لعبة = 10 صفحات)
+GAMES_CONFIG = [
+    {"slug": "pubg-mobile-mod", "game": "PUBG Mobile / ببجي موبايل", "lang": "ar"},
+    {"slug": "pubg-mobile-mod-en", "game": "PUBG Mobile", "lang": "en"},
+    {"slug": "8-ball-pool-mod", "game": "8 Ball Pool / 8 بال بول", "lang": "ar"},
+    {"slug": "8-ball-pool-mod-en", "game": "8 Ball Pool", "lang": "en"},
+    {"slug": "roblox-mod-menu", "game": "Roblox / روبلوكس", "lang": "ar"},
+    {"slug": "roblox-mod-menu-en", "game": "Roblox", "lang": "en"},
+    {"slug": "clash-of-clans-mod", "game": "Clash of Clans / كلاش أوف كلانس", "lang": "ar"},
+    {"slug": "clash-of-clans-mod-en", "game": "Clash of Clans", "lang": "en"},
+    {"slug": "free-fire-mod", "game": "Free Fire / فري فاير", "lang": "ar"},
+    {"slug": "free-fire-mod-en", "game": "Free Fire", "lang": "en"}
 ]
 
-def generate_article_text(page):
-    if page["lang"] == "ar":
-        prompt = f"""اكتب مقالاً ترويجياً وتثقيفياً مطولاً واحترافياً يستهدف SEO عن: "{page['title']}".
-تحدث عن مميزات التحديث والأمان وتحسين الأداء.
-اكتب النص في فقرات وعناوين فرعية فقط بدون أي روابط أو أكواد HTML إطلاقاً."""
+def generate_ai_content(item):
+    """ يطلب من الذكاء الاصطناعي توليد الكلمات المفتاحية الـ SEO العالية الاستهداف + المقال كاملاً """
+    if item["lang"] == "ar":
+        prompt = f"""أنت خبير SEO واختراق ألعاب. ادرس لعبة "{item['game']}" واستخرج أقوى الكلمات المفتاحية الذهبية الأكثر بحثاً من الأجهزة والجوالات (مثل كلمات: هكر، aimbot، مجاناً، جواهر، شدات، ضد الحظر، mod menu).
+ثم اكتب مقالاً تسويقياً طويلاً وجذاباً جداً يغري الزائر بالتحميل فوراً.
+
+أرجع النتيجة بصيغة JSON فقط بهذه الهيكلية:
+{{
+  "title": "عنوان المقال الرئيسي القوي والمغري جداً للتحميل",
+  "keywords": "الكلمات المفتاحية الـ 10 التي استخرجتها مفصولة بفاصلة",
+  "content": "نص المقال المفصل بالعناوين الفرعية باستخدام # و ## بدون أي روابط أو HTML"
+}}"""
     else:
-        prompt = f"""Write a comprehensive SEO-optimized guide about: "{page['title']}".
-Focus on features, performance tools, and setup instructions.
-Output clean plain text with section titles only. Do NOT include any links or HTML tags."""
+        prompt = f"""You are an SEO & Gaming Mod expert. Analyze the game "{item['game']}" and generate the highest-converting viral search keywords (Aimbot, Mod Menu, Free Currency, Anti-Ban, Unlimited Hacks, Injector).
+Then write a long, highly-persuasive promotional landing page guide.
+
+Return ONLY a valid JSON object in this format:
+{{
+  "title": "High-converting catchy title",
+  "keywords": "10 AI generated keywords separated by comma",
+  "content": "Detailed article body using # and ## for headers. No HTML tags, no URLs."
+}}"""
 
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     payload = {
         "model": "llama-3.3-70b-versatile",
         "messages": [{"role": "user", "content": prompt}],
+        "response_format": {"type": "json_object"},
         "temperature": 0.7
     }
     
     try:
-        res = requests.post(url, headers=headers, json=payload)
+        res = requests.post(url, headers=headers, json=payload, timeout=30)
         if res.status_code == 200:
-            return res.json()["choices"][0]["message"]["content"]
+            return json.loads(res.json()["choices"][0]["message"]["content"])
     except Exception as e:
-        print(f"Error fetching from Groq: {e}")
-        
-    return "محتوى إرشادي لتحديث اللعبة وسرعة التحميل."
+        print(f"Error fetching AI content for {item['slug']}: {e}")
 
-def build_html_page(page, article_text):
-    paragraphs = article_text.split("\n\n")
+    # fallback
+    return {
+        "title": f"Download {item['game']} Mod Menu VIP",
+        "keywords": "mod, hack, free, aimbot, vip",
+        "content": "Get the latest mod menu update now with anti-ban protection."
+    }
+
+def build_dark_html(item, ai_data):
+    """ تصميم المظهر الداكن (Dark Gaming Theme) لزيادة الموثوقية النفسية """
+    paragraphs = ai_data["content"].split("\n\n")
     body_content = ""
     for p in paragraphs:
         p_str = p.strip()
         if p_str.startswith("#"):
             clean_t = p_str.replace("#", "").strip()
-            body_content += f"<h2 style='color:#1e293b; margin-top:20px;'>{clean_t}</h2>\n"
+            body_content += f"<h2 style='color:#38bdf8; margin-top:30px; font-size:1.3rem; border-right:4px solid #3b82f6; padding-right:10px;'>{clean_t}</h2>\n"
         elif p_str:
-            body_content += f"<p style='line-height:1.8; color:#334155; font-size:1.1rem; margin-bottom:15px;'>{p_str}</p>\n"
+            body_content += f"<p style='line-height:1.9; color:#cbd5e1; font-size:1.05rem; margin-bottom:18px;'>{p_str}</p>\n"
 
-    btn_label = "🚀 اضغط هنا للتحميل المباشر والتفعيل" if page["lang"] == "ar" else "🚀 Click Here to Download & Setup Now"
+    btn_label = "⚡ اضغط هنا للتحميل المباشر وتفعيل الـ VIP" if item["lang"] == "ar" else "⚡ Click Here for Instant VIP Mod Download"
     
     html = f"""<!DOCTYPE html>
-<html lang="{page['lang']}" dir="{"rtl" if page['lang']=="ar" else "ltr"}">
+<html lang="{item['lang']}" dir="{"rtl" if item['lang']=="ar" else "ltr"}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{page['title']}</title>
+    <meta name="keywords" content="{ai_data['keywords']}">
+    <title>{ai_data['title']}</title>
     <style>
-        body {{ font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 20px; }}
-        .box {{ max-width: 800px; margin: 20px auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
-        h1 {{ color: #0f172a; border-bottom: 3px solid #2563eb; padding-bottom: 10px; font-size: 1.8rem; }}
-        .btn-box {{ text-align: center; margin: 30px 0; padding: 20px; background: #eff6ff; border-radius: 10px; border: 1px dashed #2563eb; }}
-        .dl-btn {{ display: inline-block; background: #2563eb; color: #ffffff !important; font-weight: bold; font-size: 1.25rem; padding: 16px 36px; border-radius: 8px; text-decoration: none; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }}
-        .dl-btn:hover {{ background: #1d4ed8; }}
+        * {{ box-sizing: border-box; }}
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 15px; }}
+        .card {{ max-width: 800px; margin: 20px auto; background: #1e293b; padding: 30px; border-radius: 16px; border: 1px solid #334155; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }}
+        .badge {{ display: inline-block; background: #3b82f6; color: #fff; font-size: 0.8rem; font-weight: bold; padding: 4px 12px; border-radius: 20px; margin-bottom: 15px; text-transform: uppercase; }}
+        h1 {{ color: #ffffff; font-size: 1.7rem; line-height: 1.4; margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 15px; }}
+        .btn-box {{ text-align: center; margin: 30px 0; padding: 25px; background: #0f172a; border-radius: 12px; border: 1px dashed #3b82f6; }}
+        .dl-btn {{ display: inline-block; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #ffffff !important; font-weight: 800; font-size: 1.25rem; padding: 18px 38px; border-radius: 10px; text-decoration: none; box-shadow: 0 0 20px rgba(37,99,235,0.5); transition: all 0.3s ease; }}
+        .dl-btn:hover {{ transform: scale(1.03); box-shadow: 0 0 30px rgba(59,130,246,0.8); }}
+        .footer-note {{ text-align: center; color: #64748b; font-size: 0.85rem; margin-top: 20px; }}
     </style>
 </head>
 <body>
-    <div class="box">
-        <h1>{page['title']}</h1>
+    <div class="card">
+        <span class="badge">VIP STATUS: ONLINE ✅</span>
+        <h1>{ai_data['title']}</h1>
         
         <div class="btn-box">
             <a href="{MONETAG_AD_LINK}" target="_blank" class="dl-btn">{btn_label}</a>
@@ -94,6 +118,7 @@ def build_html_page(page, article_text):
         <div class="btn-box">
             <a href="{MONETAG_AD_LINK}" target="_blank" class="dl-btn">{btn_label}</a>
         </div>
+        <div class="footer-note">Protected by Anti-Cheat Shield v4.1 • Fast Server Direct Download</div>
     </div>
 </body>
 </html>"""
@@ -101,20 +126,51 @@ def build_html_page(page, article_text):
 
 def main():
     os.makedirs("posts", exist_ok=True)
+    links_list = ""
     
-    for page in LANDING_PAGES:
-        print(f"Generating page: {page['slug']}...")
-        text = generate_article_text(page)
-        full_page = build_html_page(page, text)
+    for item in GAMES_CONFIG:
+        print(f"Asking AI for keywords & writing article for: {item['slug']}...")
+        ai_data = generate_ai_content(item)
+        full_html = build_dark_html(item, ai_data)
         
-        with open(f"posts/{page['slug']}.html", "w", encoding="utf-8") as f:
-            f.write(full_page)
+        # حفظ الصفحة في posts/
+        with open(f"posts/{item['slug']}.html", "w", encoding="utf-8") as f:
+            f.write(full_html)
+            
+        links_list += f"""<li style="margin-bottom: 15px;">
+            <a href="posts/{item['slug']}.html" style="color: #38bdf8; text-decoration: none; font-size: 1.1rem; font-weight: bold;">
+               🎮 {ai_data['title']}
+            </a>
+        </li>\n"""
 
-    # توجيه رابط الجذر مباشرة إلى الصفحة الأولى داخل مجلد GamesMod
+    # إنشاء صفحة index.html رئيسية وتصميم مظلم عصري يجمع الصفحات العشر
+    index_html = f"""<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Mods & VIP Tools Portal</title>
+    <style>
+        body {{ font-family: system-ui, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; }}
+        .box {{ max-width: 800px; margin: 20px auto; background: #1e293b; padding: 30px; border-radius: 16px; border: 1px solid #334155; }}
+        h1 {{ color: #38bdf8; font-size: 1.6rem; margin-bottom: 25px; border-bottom: 1px solid #334155; padding-bottom: 10px; }}
+        ul {{ list-style: none; padding: 0; }}
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>🔥 بوابة أدوات وتحديثات الألعاب (VIP Mod Pages)</h1>
+        <ul>
+            {links_list}
+        </ul>
+    </div>
+</body>
+</html>"""
+
     with open("index.html", "w", encoding="utf-8") as f:
-        f.write(f'<meta http-equiv="refresh" content="0; url=posts/{LANDING_PAGES[0]["slug"]}.html">')
+        f.write(index_html)
 
-    print("DONE: Generated 10 independent landing pages!")
+    print("ALL 10 DARK VIP LANDING PAGES GENERATED SUCCESSFULLY!")
 
 if __name__ == "__main__":
     main()
