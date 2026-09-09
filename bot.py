@@ -41,72 +41,108 @@ def send_telegram_msg(message):
             print(f"Telegram error: {e}")
 
 def generate_ai_content(item):
-    """ توليد المقال كاملاً بتنسيق Markdown مفصل لتجنب أخطاء JSON """
+    """ توليد مقال كامل ومتكامل وعالي الجودة عبر Groq API """
     if item["lang"] == "ar":
-        prompt = f"""أنت خبير متقدم في SEO واختراق الألعاب ومحتوى الجيمينج الجذاب للأطفال والشباب.
-اكتب مقالاً تسويقياً طويلاً جداً ومفصلاً باللغة العربية الفصحى فقط عن أحدث تحديث وتهكير للعبة "{item['game']}".
+        prompt = f"""أنت كاتب مقالات وخبير متقدم في SEO وألعاب الفيديو.
+اكتب مقالاً شاملاً، مفصلاً، وطويلاً جداً (لا يقل عن 800 كلمة) باللغة العربية الفصحى حول التحديث الأخير والميزات المتقدمة للعبة "{item['game']}".
 
-استخدم الكلمات المفتاحية الأكثر بحثاً مثل: {item['keywords_hint']}.
+ادمج الكلمات المفتاحية التالية بشكل طبيعي داخل النص: {item['keywords_hint']}.
 
-الشروط المطلوبة:
-1. السطر الأول في استجابتك يجب أن يكون العنوان الرئيسي فقط ويكون جذاباً وتنافسياً جداً (مثل: تحميل أحدث مود منيو {item['game']} مع كشف أماكن وضد الحظر).
-2. باقي النص مقال طويل مفصل يحتوي على العناوين الفرعية التالية باستخدام # و ##:
-   - مميزات التحديث الأخير والخصائص الخارقة.
-   - طريقة التفعيل والأمان ضد الحظر (Anti-Ban).
-   - إرشادات التحميل المباشر.
-3. اكتب باللغة العربية بالكامل دون خلط الإنجليزي بالكلمات. لا تضع أي روابط خارجية أو وسم HTML."""
+شروط الصياغة والتنسيق (صارمة جداً):
+1. السطر الأول فقط يجب أن يكون العنوان الرئيسي المقترح للمقال وبدون أي رموز أو علامات ماركدون.
+2. قسم المقال إلى عدة أجزاء رئيسية باستخدام العناوين الفرعية الماركدون (## و ###):
+   - مقدمة شاملة عن اللعبة وأهمية التحديث الأخير.
+   - أبرز الميزات الجديدة والخصائص المتقدمة بالتفصيل.
+   - دليل خطوة بخطوة للثبيت والتفعيل وتجاوز نظام الحظر (Anti-Ban).
+   - نصائح وإرشادات للأمان والحفاظ على حسابك.
+   - الأسئلة الشائعة والإجابات الخاصة بها.
+3. استخدم القوائم النقطية (*) لشرح الميزات والخطوات بوضوح.
+4. النص يجب أن يكون باللغة العربية الفصحى فقط وبشكل احترافي ومنسق. لا تدرج أي روابط external أو وسم HTML."""
     else:
-        prompt = f"""You are an SEO & Gaming Mod expert creating high-converting viral landing pages for gamers.
-Write a comprehensive, highly persuasive long-form guide in pure English for the latest mod hack of "{item['game']}".
+        prompt = f"""You are a professional SEO content writer and gaming specialist.
+Write a comprehensive, highly detailed, and long-form guide (at least 800 words) in pure English regarding the latest update and mod features for "{item['game']}".
 
-Incorporate these highly searched keywords naturally: {item['keywords_hint']}.
+Naturally incorporate these target keywords: {item['keywords_hint']}.
 
-Requirements:
-1. The first line MUST be the main catchy Title only (e.g., Download Ultimate {item['game']} Mod Menu VIP Anti-Ban).
-2. The rest must be a detailed article using Markdown (# and ## for headers) covering:
-   - Key Features & Injector Capabilities.
-   - Anti-Ban Security & Installation Guide.
-   - How to Activate VIP Features.
-3. Do NOT include any external URLs or HTML tags."""
+Strict Formatting Rules:
+1. The VERY FIRST line MUST be the main catchy Title ONLY, without any markdown symbols or HTML.
+2. Structure the body using proper Markdown headers (## and ###):
+   - Overview & Introduction to the latest game version.
+   - Key Features, Enhancements, and Advanced Functions detailed breakdown.
+   - Installation & Anti-Ban Security Walkthrough.
+   - Best Practices for Account Safety.
+   - Frequently Asked Questions (FAQ).
+3. Use bullet points (*) for feature lists and instructions to ensure readability.
+4. Write exclusively in clear, professional English. Do NOT include external URLs or raw HTML tags."""
 
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     payload = {
         "model": "llama-3.3-70b-versatile",
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.7
+        "temperature": 0.6
     }
     
     try:
-        res = requests.post(url, headers=headers, json=payload, timeout=40)
+        res = requests.post(url, headers=headers, json=payload, timeout=60)
         if res.status_code == 200:
             raw_text = res.json()["choices"][0]["message"]["content"].strip()
             lines = raw_text.split("\n")
+            # استخراج العنوان وت نظيفه
             title = lines[0].replace("#", "").strip()
             content = "\n".join(lines[1:]).strip()
             return {"title": title, "content": content, "keywords": item["keywords_hint"]}
     except Exception as e:
         print(f"Error fetching AI content for {item['slug']}: {e}")
 
-    # Fallback في حال الانقطاع المفاجئ للشبكة
-    default_title = f"تحميل تحديث مود منيو {item['game']} VIP" if item["lang"] == "ar" else f"Download {item['game']} Mod Menu VIP Update"
+    # Fallback في حال الانقطاع المفاجئ
+    default_title = f"دليل تحديث وميزات لعبة {item['game']} الجديدة" if item["lang"] == "ar" else f"Complete Guide to {item['game']} Latest Update Features"
     return {
         "title": default_title,
-        "content": f"## مميزات المود المباشر\nاحصل على كافة الخصائص المتقدمة وتجاوز الحظر للتحديث الأخير من {item['game']}.",
+        "content": f"## مقدمة\nتعرف على أبرز وأحدث التحديثات والميزات المتقدمة الخاصة بلعبة {item['game']}.\n\n## الميزات الرئيسية\n* تحسينات الأداء والسرعة.\n* ميزات حماية متقدمة ضد الحظر.\n* واجهة سهلة الاستخدام.",
         "keywords": item["keywords_hint"]
     }
 
 def build_dark_html(item, ai_data):
-    """ المظهر الداكن (Dark Gaming Theme) + تتبع الزوار عبر التليجرام """
-    paragraphs = ai_data["content"].split("\n\n")
+    """ بناء صفحة HTML بتنسيق مظلم جذاب وتحويل الماركدون إلى عناصر HTML مرتبة """
+    paragraphs = ai_data["content"].split("\n")
     body_content = ""
-    for p in paragraphs:
-        p_str = p.strip()
-        if p_str.startswith("#"):
-            clean_t = re.sub(r'^#+\s*', '', p_str)
-            body_content += f"<h2 style='color:#38bdf8; margin-top:30px; font-size:1.3rem; border-right:4px solid #3b82f6; padding-right:10px;'>{clean_t}</h2>\n"
-        elif p_str:
-            body_content += f"<p style='line-height:1.9; color:#cbd5e1; font-size:1.05rem; margin-bottom:18px;'>{p_str}</p>\n"
+    in_list = False
+
+    for line in paragraphs:
+        p_str = line.strip()
+        if not p_str:
+            if in_list:
+                body_content += "</ul>\n"
+                in_list = False
+            continue
+
+        if p_str.startswith("###"):
+            if in_list: body_content += "</ul>\n"; in_list = False
+            clean_t = re.sub(r'^###\s*', '', p_str)
+            body_content += f"<h3 style='color:#60a5fa; margin-top:20px; font-size:1.15rem;'>{clean_t}</h3>\n"
+        elif p_str.startswith("##"):
+            if in_list: body_content += "</ul>\n"; in_list = False
+            clean_t = re.sub(r'^##\s*', '', p_str)
+            body_content += f"<h2 style='color:#38bdf8; margin-top:30px; font-size:1.35rem; border-right:4px solid #3b82f6; padding-right:10px;'>{clean_t}</h2>\n"
+        elif p_str.startswith("#"):
+            if in_list: body_content += "</ul>\n"; in_list = False
+            clean_t = re.sub(r'^#\s*', '', p_str)
+            body_content += f"<h2 style='color:#38bdf8; margin-top:30px; font-size:1.35rem; border-right:4px solid #3b82f6; padding-right:10px;'>{clean_t}</h2>\n"
+        elif p_str.startswith("* ") or p_str.startswith("- "):
+            if not in_list:
+                body_content += "<ul style='color:#cbd5e1; line-height:1.8; margin-bottom:15px; padding-right:20px;'>\n"
+                in_list = True
+            clean_li = re.sub(r'^\*|\-\s*', '', p_str)
+            body_content += f"<li>{clean_li}</li>\n"
+        else:
+            if in_list:
+                body_content += "</ul>\n"
+                in_list = False
+            body_content += f"<p style='line-height:1.9; color:#cbd5e1; font-size:1.05rem; margin-bottom:16px;'>{p_str}</p>\n"
+
+    if in_list:
+        body_content += "</ul>\n"
 
     btn_label = "⚡ اضغط هنا للتحميل المباشر وتفعيل الـ VIP" if item["lang"] == "ar" else "⚡ Click Here for Instant VIP Mod Download"
     
