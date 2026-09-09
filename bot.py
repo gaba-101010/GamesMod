@@ -2,14 +2,17 @@ import os
 import requests
 import json
 
+# جلب الـ Secrets الأربعة بالكامل
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 MONETAG_AD_LINK = os.environ.get("MONETAG_AD_LINK", "https://google.com")
 
 if not GROQ_API_KEY:
     print("ERROR: Missing GROQ_API_KEY")
     exit(1)
 
-# الخمس ألعاب المستهدفة (نسخة عربي ونسخة إنجليزي لكل لعبة = 10 صفحات)
+# الخمس ألعاب المستهدفة (عربي وإنجليزي = 10 صفحات)
 GAMES_CONFIG = [
     {"slug": "pubg-mobile-mod", "game": "PUBG Mobile / ببجي موبايل", "lang": "ar"},
     {"slug": "pubg-mobile-mod-en", "game": "PUBG Mobile", "lang": "en"},
@@ -23,11 +26,25 @@ GAMES_CONFIG = [
     {"slug": "free-fire-mod-en", "game": "Free Fire", "lang": "en"}
 ]
 
+def send_telegram_msg(message):
+    """ إرسال إشعار للـ Telegram عند انتهاء التوليد """
+    if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        payload = {
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": message,
+            "parse_mode": "HTML"
+        }
+        try:
+            requests.post(url, json=payload, timeout=10)
+        except Exception as e:
+            print(f"Telegram error: {e}")
+
 def generate_ai_content(item):
-    """ يطلب من الذكاء الاصطناعي توليد الكلمات المفتاحية الـ SEO العالية الاستهداف + المقال كاملاً """
+    """ توليد الكلمات المفتاحية الـ SEO الذهبية للتهكير + المقال بواسطة Groq """
     if item["lang"] == "ar":
-        prompt = f"""أنت خبير SEO واختراق ألعاب. ادرس لعبة "{item['game']}" واستخرج أقوى الكلمات المفتاحية الذهبية الأكثر بحثاً من الأجهزة والجوالات (مثل كلمات: هكر، aimbot، مجاناً، جواهر، شدات، ضد الحظر، mod menu).
-ثم اكتب مقالاً تسويقياً طويلاً وجذاباً جداً يغري الزائر بالتحميل فوراً.
+        prompt = f"""أنت خبير SEO واختراق ألعاب. ادرس لعبة "{item['game']}" واستخرج أقوى الكلمات المفتاحية الذهبية الأكثر بحثاً من الأجهزة والجوالات (مثل: هكر، aimbot، sharp shooter، مجاناً، جواهر، شدات، ضد الحظر، mod menu).
+ثم اكتب مقالاً تسويقياً طويلاً ومغرياً جداً يغري اللاعبين والأطفال بالتحميل فوراً.
 
 أرجع النتيجة بصيغة JSON فقط بهذه الهيكلية:
 {{
@@ -36,7 +53,7 @@ def generate_ai_content(item):
   "content": "نص المقال المفصل بالعناوين الفرعية باستخدام # و ## بدون أي روابط أو HTML"
 }}"""
     else:
-        prompt = f"""You are an SEO & Gaming Mod expert. Analyze the game "{item['game']}" and generate the highest-converting viral search keywords (Aimbot, Mod Menu, Free Currency, Anti-Ban, Unlimited Hacks, Injector).
+        prompt = f"""You are an SEO & Gaming Mod expert. Analyze the game "{item['game']}" and generate highest-converting viral search keywords (Aimbot, Mod Menu, Free Currency, Anti-Ban, Sharp Shooter, Unlimited Hacks, Injector).
 Then write a long, highly-persuasive promotional landing page guide.
 
 Return ONLY a valid JSON object in this format:
@@ -62,15 +79,14 @@ Return ONLY a valid JSON object in this format:
     except Exception as e:
         print(f"Error fetching AI content for {item['slug']}: {e}")
 
-    # fallback
     return {
-        "title": f"Download {item['game']} Mod Menu VIP",
+        "title": f"Download {item['game']} VIP Mod Hack",
         "keywords": "mod, hack, free, aimbot, vip",
         "content": "Get the latest mod menu update now with anti-ban protection."
     }
 
 def build_dark_html(item, ai_data):
-    """ تصميم المظهر الداكن (Dark Gaming Theme) لزيادة الموثوقية النفسية """
+    """ المظهر الداكن + تتبع الزوار لحظياً عبر التليجرام """
     paragraphs = ai_data["content"].split("\n\n")
     body_content = ""
     for p in paragraphs:
@@ -83,6 +99,21 @@ def build_dark_html(item, ai_data):
 
     btn_label = "⚡ اضغط هنا للتحميل المباشر وتفعيل الـ VIP" if item["lang"] == "ar" else "⚡ Click Here for Instant VIP Mod Download"
     
+    # كود تتبع الزائر وإرسال تنبيه للتليجرام عند فتح الصفحة
+    visitor_tracker_script = f"""
+    <script>
+        (function() {{
+            var botToken = "{TELEGRAM_BOT_TOKEN or ''}";
+            var chatId = "{TELEGRAM_CHAT_ID or ''}";
+            if(botToken && chatId) {{
+                var msg = "👁️ <b>زائر جديد دخل الصفحة!</b>\\n\\n🎮 الصفحة: " + encodeURIComponent(document.title) + "\\n🔗 الرابط: " + encodeURIComponent(window.location.href);
+                fetch("https://api.telegram.org/bot" + botToken + "/sendMessage?chat_id=" + chatId + "&text=" + msg + "&parse_mode=HTML")
+                .catch(function(e){{}});
+            }}
+        }})();
+    </script>
+    """
+
     html = f"""<!DOCTYPE html>
 <html lang="{item['lang']}" dir="{"rtl" if item['lang']=="ar" else "ltr"}">
 <head>
@@ -101,6 +132,7 @@ def build_dark_html(item, ai_data):
         .dl-btn:hover {{ transform: scale(1.03); box-shadow: 0 0 30px rgba(59,130,246,0.8); }}
         .footer-note {{ text-align: center; color: #64748b; font-size: 0.85rem; margin-top: 20px; }}
     </style>
+    {visitor_tracker_script}
 </head>
 <body>
     <div class="card">
@@ -127,13 +159,14 @@ def build_dark_html(item, ai_data):
 def main():
     os.makedirs("posts", exist_ok=True)
     links_list = ""
+    tg_msg = "<b>🚀 تم بناء الـ 10 صفحات الهبوط المظلمة وتفعيل تتبع الزوار بنجاح!</b>\n\n"
     
     for item in GAMES_CONFIG:
-        print(f"Asking AI for keywords & writing article for: {item['slug']}...")
+        print(f"Generating page for: {item['slug']}...")
         ai_data = generate_ai_content(item)
         full_html = build_dark_html(item, ai_data)
         
-        # حفظ الصفحة في posts/
+        # حفظ كل صفحة بشكل مستقل
         with open(f"posts/{item['slug']}.html", "w", encoding="utf-8") as f:
             f.write(full_html)
             
@@ -142,8 +175,10 @@ def main():
                🎮 {ai_data['title']}
             </a>
         </li>\n"""
+        
+        tg_msg += f"• <a href='https://gaba-101010.github.io/GamesMod/posts/{item['slug']}.html'>{ai_data['title']}</a>\n"
 
-    # إنشاء صفحة index.html رئيسية وتصميم مظلم عصري يجمع الصفحات العشر
+    # إنشاء صفحة الـ index الرئيسية
     index_html = f"""<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -170,7 +205,9 @@ def main():
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(index_html)
 
-    print("ALL 10 DARK VIP LANDING PAGES GENERATED SUCCESSFULLY!")
+    # إرسال قائمة الروابط لتليجرام
+    send_telegram_msg(tg_msg)
+    print("ALL 10 PAGES GENERATED & TRACKER ENABLED!")
 
 if __name__ == "__main__":
     main()
