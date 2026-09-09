@@ -8,8 +8,6 @@ GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 MONETAG_AD_LINK = os.environ.get("MONETAG_AD_LINK")
-GITHUB_TOKEN = os.environ.get("GH_PAT")  # توكن غيتهاب لرفع الملفات للمستودع
-REPO_NAME = "gaba-101010/Gaba-101010-GamesMode"
 
 if not GROQ_API_KEY:
     print("ERROR: Missing Groq API Key!")
@@ -38,9 +36,9 @@ def generate_article(game_name, lang):
     else:
         prompt = f"Write an engaging promotional article in English about {game_name} mods and control tools. Include a natural anchor link like [Click here for safe download and start]({MONETAG_AD_LINK}). Avoid specific version numbers."
 
-    # استخدام نموذج قوي ومستقر حالياً من Groq
+    # استخدام النموذج المعتمد والسريع والمتاح دائماً
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.7
     )
@@ -48,12 +46,9 @@ def generate_article(game_name, lang):
 
 print("🚀 جاري توليد وتحديث الـ 10 مقالات للمدونة...")
 
-# 2. حلقة لتوليد المقالات وحفظها
 for game in GAMES:
     content_ar = generate_article(game["ar"], "ar")
     content_en = generate_article(game["en"], "en")
-    
-    # (اختياري/مستقبلي): هنا يتم رفع الملفات لمجلد games/ عبر GitHub API لو حابب تكتمل الصورة أوتوماتيكياً
-    print(f"تم تحديث محتوى: {game['en']} / {game['ar']}")
+    print(f"تم توليد محتوى: {game['en']} / {game['ar']}")
 
 send_telegram_alert("🔔 تم تحديث المقالات الـ 10 في مدونة الألعاب بنجاح عبر البوت!")
